@@ -60,6 +60,33 @@ DOMAIN_TERMS = {
 }
 
 NOISY_STREAM_TERMS = {"application octet stream", "octet stream", "stream"}
+BLOCK_STOP_TOKENS = {
+    "data",
+    "dataset",
+    "datasets",
+    "file",
+    "files",
+    "resource",
+    "resources",
+    "service",
+    "services",
+    "state",
+    "states",
+    "county",
+    "city",
+    "public",
+    "national",
+    "information",
+    "metadata",
+    "system",
+    "systems",
+    "program",
+    "project",
+    "report",
+    "reports",
+    "map",
+    "maps",
+}
 
 
 @dataclass(frozen=True)
@@ -166,16 +193,18 @@ def build_edges(terms: list[str], *, method: str, similarity_threshold: float) -
         edges.append(ClusterEdge(left, right, 1.0, "hybrid" if method == "hybrid" else "exact"))
 
     if method in {"fuzzy", "hybrid"}:
-        for i, left in enumerate(terms):
-            for right in terms[i + 1 :]:
-                if not can_compare_terms(left, right):
-                    continue
-                score = fuzz.token_set_ratio(left, right) / 100
-                if score >= similarity_threshold:
-                    edges.append(ClusterEdge(left, right, score, "fuzzy" if method == "fuzzy" else "hybrid"))
+        for block in comparison_blocks(terms):
+            for i, left in enumerate(block):
+                for right in block[i + 1 :]:
+                    if not can_compare_terms(left, right):
+                        continue
+                    score = fuzz.token_set_ratio(left, right) / 100
+                    if score >= similarity_threshold:
+                        edges.append(ClusterEdge(left, right, score, "fuzzy" if method == "fuzzy" else "hybrid"))
 
     if method in {"tfidf", "hybrid"}:
-        edges.extend(tfidf_edges(terms, similarity_threshold, reason="tfidf" if method == "tfidf" else "hybrid"))
+        for block in comparison_blocks(terms):
+            edges.extend(tfidf_edges(block, similarity_threshold, reason="tfidf" if method == "tfidf" else "hybrid"))
 
     if method == "embedding":
         edges.extend(embedding_edges(terms, similarity_threshold))
@@ -197,6 +226,48 @@ def tfidf_edges(terms: list[str], threshold: float, *, reason: str) -> list[Clus
             if score >= threshold:
                 edges.append(ClusterEdge(left, terms[j], score, reason))
     return edges
+
+
+def comparison_blocks(terms: list[str], *, max_block_size: int = 150) -> list[list[str]]:
+    blocks: dict[str, set[str]] = {}
+    for term in terms:
+        tokens = term.split()
+        keys = block_keys(term, tokens)
+        for key in keys:
+            blocks.setdefault(key, set()).add(term)
+    result: list[list[str]] = []
+    seen: set[tuple[str, ...]] = set()
+    for values in blocks.values():
+        if len(values) < 2:
+            continue
+        ordered = tuple(sorted(values))
+        if ordered in seen:
+            continue
+        seen.add(ordered)
+        if len(ordered) <= max_block_size:
+            result.append(list(ordered))
+            continue
+        subblocks: dict[str, list[str]] = {}
+        for term in ordered:
+            tokens = [token for token in term.split() if token not in BLOCK_STOP_TOKENS]
+            key = (tokens[0][:6] if tokens else term[:6])
+            subblocks.setdefault(key, []).append(term)
+        for values in subblocks.values():
+            if 1 < len(values) <= max_block_size:
+                result.append(values)
+    return result
+
+
+def block_keys(term: str, tokens: list[str]) -> set[str]:
+    keys = {token for token in tokens if token not in BLOCK_STOP_TOKENS}
+    if term in SYNONYM_CANONICALS:
+        keys.add(SYNONYM_CANONICALS[term])
+    for alias, canonical in SYNONYM_CANONICALS.items():
+        if term == canonical:
+            keys.add(alias)
+    if tokens:
+        keys.add(tokens[0])
+    return {key for key in keys if len(key) >= 3}
 
 
 def embedding_edges(terms: list[str], threshold: float) -> list[ClusterEdge]:

@@ -179,10 +179,6 @@ This project can support exploratory research into:
 
 The outputs are intentionally reviewable CSV and Markdown files so researchers can inspect candidate clusters before making claims.
 
-## NIW Evidence Use
-
-For National Interest Waiver evidence preparation, this tool can help produce early artifacts showing a concrete technical problem, a reproducible method, and preliminary evidence from a nationally significant open government data catalog. The reports should be treated as supporting research material, not legal advice or final proof.
-
 ## Limitations
 
 - Metadata may be stale.
