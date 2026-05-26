@@ -124,6 +124,7 @@ def cluster_terms(
     terms = sorted({str(value) for value in frame["normalized_term"].tolist() if str(value).strip()})
     edges = build_edges(terms, method=method, similarity_threshold=similarity_threshold)
     assignments = connected_components(terms, edges)
+    assignments = split_oversized_components(assignments, max_cluster_terms=500)
     rows = build_cluster_rows(frame, assignments, edges)
     result = pd.DataFrame(rows, columns=CLUSTER_COLUMNS).sort_values(
         ["cluster_id", "count", "observed_term"], ascending=[True, False, True]
@@ -202,7 +203,7 @@ def build_edges(terms: list[str], *, method: str, similarity_threshold: float) -
                     if score >= similarity_threshold:
                         edges.append(ClusterEdge(left, right, score, "fuzzy" if method == "fuzzy" else "hybrid"))
 
-    if method in {"tfidf", "hybrid"}:
+    if method in {"tfidf", "hybrid"} and len(terms) <= 50_000:
         for block in comparison_blocks(terms):
             edges.extend(tfidf_edges(block, similarity_threshold, reason="tfidf" if method == "tfidf" else "hybrid"))
 
@@ -311,6 +312,24 @@ def connected_components(terms: list[str], edges: list[ClusterEdge]) -> dict[str
     return {term: root_to_id[find(term)] for term in terms}
 
 
+def split_oversized_components(assignments: dict[str, int], *, max_cluster_terms: int) -> dict[str, int]:
+    grouped: dict[int, list[str]] = {}
+    for term, cluster_id in assignments.items():
+        grouped.setdefault(cluster_id, []).append(term)
+    next_id = max(grouped, default=0) + 1
+    fixed: dict[str, int] = {}
+    for cluster_id, terms in grouped.items():
+        if len(terms) <= max_cluster_terms:
+            for term in terms:
+                fixed[term] = cluster_id
+            continue
+        for term in terms:
+            fixed[term] = next_id
+            next_id += 1
+    renumber = {cluster_id: index + 1 for index, cluster_id in enumerate(sorted(set(fixed.values())))}
+    return {term: renumber[cluster_id] for term, cluster_id in fixed.items()}
+
+
 def can_compare_terms(left: str, right: str) -> bool:
     left_tokens = set(left.split())
     right_tokens = set(right.split())
@@ -323,6 +342,12 @@ def can_compare_terms(left: str, right: str) -> bool:
     if len(left_tokens & right_tokens) == 0:
         return False
     if min(len(left), len(right)) < 5 and left != right:
+        return False
+    if len(left_tokens) == 1 or len(right_tokens) == 1:
+        return left_tokens == right_tokens
+    overlap = len(left_tokens & right_tokens) / min(len(left_tokens), len(right_tokens))
+    length_ratio = min(len(left), len(right)) / max(len(left), len(right))
+    if overlap < 0.67 or length_ratio < 0.55:
         return False
     return True
 
