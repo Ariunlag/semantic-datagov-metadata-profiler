@@ -1,0 +1,9 @@
+[
+  {
+    "id": "example-1",
+    "title": "Traffic Crash Records",
+    "notes": "Reported traffic crash incidents with location and severity.",
+    "tags": [{"name": "traffic crash"}, {"name": "safety"}],
+    "resources": [{"name": "Crash CSV download url", "format": "CSV", "downloadURL": "https://example.gov/files/crashes.csv"}]
+  }
+]

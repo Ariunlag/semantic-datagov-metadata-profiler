@@ -1,0 +1,6 @@
+cluster_id,canonical_term,observed_term,normalized_term,source_fields,count,similarity_score,cluster_reason,examples
+1,traffic crash,traffic crash,traffic crash,tags,2,1.0,exact,Traffic Crash Records
+1,traffic crash,motor vehicle collision,motor vehicle collision,tags,2,1.0,hybrid,Motor Vehicle Collision Data
+1,traffic crash,road accident,road accident,tags,2,1.0,hybrid,Road Accident Summary
+2,download url,file link,file link,resource_names,2,1.0,hybrid,Motor Vehicle Collision Data
+3,keyword,topic,topic,tags,2,1.0,hybrid,Road Accident Summary

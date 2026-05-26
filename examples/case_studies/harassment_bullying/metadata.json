@@ -1,0 +1,31 @@
+{
+  "id": "school-harassment-bullying",
+  "title": "School Harassment and Bullying Reports",
+  "description": "Annual harassment, intimidation, and bullying incident reports.",
+  "organization": {
+    "name": "education",
+    "title": "Department of Education"
+  },
+  "dcat": {
+    "@type": "dcat:Dataset",
+    "title": "School Harassment and Bullying Reports",
+    "description": "Annual harassment, intimidation, and bullying incident reports.",
+    "identifier": "school-harassment-bullying",
+    "accessLevel": "public",
+    "modified": "2025-01-15",
+    "issued": "2024-01-01",
+    "keyword": ["harassment", "bullying", "school safety"],
+    "theme": ["education", "public safety"],
+    "publisher": {"name": "Department of Education"},
+    "contactPoint": {"fn": "Open Data Office", "hasEmail": "mailto:data@example.gov"},
+    "distribution": [
+      {
+        "title": "HIB CSV file",
+        "description": "Small synthetic fixture, not a real student dataset.",
+        "format": "CSV",
+        "mediaType": "text/csv",
+        "downloadURL": "examples/case_studies/harassment_bullying/resource_sample.csv"
+      }
+    ]
+  }
+}
